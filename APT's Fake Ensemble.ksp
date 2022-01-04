@@ -1,0 +1,222 @@
+on init
+    set_ui_height_px(85)
+    set_script_title("APT's Fake Ensemble")
+
+    declare ui_value_edit $start_note(0, 127, $VALUE_EDIT_MODE_NOTE_NAMES) 
+    set_control_par(get_ui_id($start_note), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($start_note),$CONTROL_PAR_POS_X,60)
+    set_control_par(get_ui_id($start_note),$CONTROL_PAR_POS_Y,0)
+    set_text($start_note, "Starting Note")
+    $start_note := 21
+
+    declare ui_button $button_midilearn_s
+    set_control_par(get_ui_id($button_midilearn_s),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($button_midilearn_s),$CONTROL_PAR_POS_X,220)
+    set_control_par(get_ui_id($button_midilearn_s),$CONTROL_PAR_POS_Y,0)
+    set_text($button_midilearn_s,"MIDI Learn")
+
+    declare ui_value_edit $end_note(0, 127, $VALUE_EDIT_MODE_NOTE_NAMES) 
+    set_control_par(get_ui_id($end_note), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($end_note),$CONTROL_PAR_POS_X,60)
+    set_control_par(get_ui_id($end_note),$CONTROL_PAR_POS_Y,20)
+    set_text($end_note, "Ending Note")
+    $end_note := 108
+
+    declare ui_button $button_midilearn_e
+    set_control_par(get_ui_id($button_midilearn_e),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($button_midilearn_e),$CONTROL_PAR_POS_X,220)
+    set_control_par(get_ui_id($button_midilearn_e),$CONTROL_PAR_POS_Y,20)
+    set_text($button_midilearn_e,"MIDI Learn")
+
+
+    declare ui_value_edit $bias(0, 12, 1) 
+    set_control_par(get_ui_id($bias), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($bias),$CONTROL_PAR_POS_X,60)
+    set_control_par(get_ui_id($bias),$CONTROL_PAR_POS_Y,40)
+    set_text($bias, "Borrowing Bias")
+    $bias := 2
+
+    declare ui_value_edit $ens_num(1, 7, 1) 
+    set_control_par(get_ui_id($ens_num), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($ens_num),$CONTROL_PAR_POS_X,60)
+    set_control_par(get_ui_id($ens_num),$CONTROL_PAR_POS_Y,60)
+    set_text($ens_num, "Ensemble Number")
+    $ens_num := 3
+
+    declare ui_knob $time_fac(0, 500000, 1000)
+    set_control_par(get_ui_id($time_fac),$CONTROL_PAR_POS_X,340)
+    set_control_par(get_ui_id($time_fac),$CONTROL_PAR_POS_Y,0)
+    set_text($time_fac, "Time/ms")
+    $time_fac := 15000
+
+    declare ui_knob $time_ran(0, 100, 1) 
+    set_control_par(get_ui_id($time_ran),$CONTROL_PAR_POS_X,440)
+    set_control_par(get_ui_id($time_ran),$CONTROL_PAR_POS_Y,0)
+    set_text($time_ran, "Time Ran%")
+    $time_ran := 30
+
+    declare ui_knob $vel_ran(0, 100, 1)
+    set_control_par(get_ui_id($vel_ran),$CONTROL_PAR_POS_X,340)
+    set_control_par(get_ui_id($vel_ran),$CONTROL_PAR_POS_Y,40)
+    set_text($vel_ran, "Vel Ran%")
+    $vel_ran := 10
+
+    declare ui_button $button_rel_stg
+    set_control_par(get_ui_id($button_rel_stg),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($button_rel_stg),$CONTROL_PAR_POS_X,540)
+    set_control_par(get_ui_id($button_rel_stg),$CONTROL_PAR_POS_Y,0)
+    set_text($button_rel_stg,"Release Staggering")
+    $button_rel_stg := 0
+
+    make_persistent($start_note)
+    make_persistent($end_note)
+    make_persistent($bias)
+    make_persistent($ens_num)
+    make_persistent($time_fac)
+    make_persistent($time_ran)
+    make_persistent($vel_ran)
+    make_persistent($button_rel_stg)
+
+    read_persistent_var($start_note)
+    read_persistent_var($end_note)
+    read_persistent_var($bias)
+    read_persistent_var($ens_num)
+    read_persistent_var($time_fac)
+    read_persistent_var($time_ran)
+    read_persistent_var($vel_ran)
+    read_persistent_var($button_rel_stg)
+
+
+    declare $time_ran_range
+    declare $time_ran_range2
+    declare $vel_ran_range
+
+    declare $borrow
+    declare $borrow2
+    declare $midich
+    declare $midich2
+    declare $i
+    declare $i2
+    declare $i3
+    declare $j
+    declare $j2
+    declare $tmp
+    declare $tmp2
+    declare $vel
+
+end on
+
+
+on midi_in
+
+    ignore_midi 
+
+    if ($MIDI_COMMAND=$MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s=1 or $button_midilearn_e=1))    {MIDI LEARN}
+        ignore_midi
+        if($button_midilearn_s=1)
+            $button_midilearn_s := 0
+            $start_note := $MIDI_BYTE_1
+        end if
+        if($button_midilearn_e=1)
+            $button_midilearn_e := 0
+            $end_note := $MIDI_BYTE_1
+        end if
+        exit
+    end if
+
+    if (($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON) and ($MIDI_BYTE_2{vel} # 0) and ($MIDI_BYTE_1 >= $start_note) and ($MIDI_BYTE_1 <= $end_note))     {Note, send to cur RR channel}
+        $i := 1
+        while ($i <= $ens_num)
+            select ($i)
+            case 1
+                $borrow := $MIDI_BYTE_1
+                $midich := 1
+            case 2
+                $borrow := $MIDI_BYTE_1 + $bias
+                $midich := 2
+            case 3
+                $borrow := $MIDI_BYTE_1 - $bias
+                $midich := 3
+            case 4
+                $borrow := $MIDI_BYTE_1 + 2*$bias
+                $midich := 4
+            case 5
+                $borrow := $MIDI_BYTE_1 - 2*$bias
+                $midich := 5
+            case 6
+                $borrow := $MIDI_BYTE_1 + 3*$bias
+                $midich := 6
+            case 7
+                $borrow := $MIDI_BYTE_1 - 3*$bias
+                $midich := 7
+            end select
+            
+            if($borrow >= $start_note and $borrow <= $end_note)
+                $vel_ran_range := $MIDI_BYTE_2 * $vel_ran / 100
+                $vel := $MIDI_BYTE_2 + random(-$vel_ran_range, $vel_ran_range)
+                if($vel <= 0)
+                    $vel := 1
+                end if 
+                if($vel >127)
+                    $vel := 127
+                end if
+                set_midi($midich-1, $MIDI_COMMAND, $borrow, $vel)
+                $time_ran_range := $time_fac * $time_ran / 100
+                wait($time_fac + random(-$time_ran_range, $time_ran_range))
+            end if
+
+            inc($i)
+
+        end while
+        
+
+    else if ( ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_OFF or ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2{vel} = 0)) and ($MIDI_BYTE_1 >= $start_note) and ($MIDI_BYTE_1 <= $end_note)  )
+        $i2 := 1
+        while ($i2 <= $ens_num)
+            select ($i2)
+            case 1
+                $borrow2 := $MIDI_BYTE_1
+                $midich2 := 1
+            case 2
+                $borrow2 := $MIDI_BYTE_1 + $bias
+                $midich2 := 2
+            case 3
+                $borrow2 := $MIDI_BYTE_1 - $bias
+                $midich2 := 3
+            case 4
+                $borrow2 := $MIDI_BYTE_1 + 2*$bias
+                $midich2 := 4
+            case 5
+                $borrow2 := $MIDI_BYTE_1 - 2*$bias
+                $midich2 := 5
+            case 6
+                $borrow2 := $MIDI_BYTE_1 + 3*$bias
+                $midich2 := 6
+            case 7
+                $borrow2 := $MIDI_BYTE_1 - 3*$bias
+                $midich2 := 7
+            end select
+            
+            if($borrow2 >= $start_note and $borrow2 <= $end_note)
+                set_midi($midich2-1, $MIDI_COMMAND, $borrow2, $MIDI_BYTE_2)
+                if($button_rel_stg = 1)
+                    $time_ran_range2 := $time_fac * $time_ran / 100
+                    wait($time_fac + random(-$time_ran_range2, $time_ran_range2))
+                end if
+            end if
+
+            inc($i2)
+
+        end while
+
+    else        {others, send to all channels}
+        $i3 := 1
+        while ($i3 <= $ens_num)
+            set_midi($i3-1, $MIDI_COMMAND, $MIDI_BYTE_1, $MIDI_BYTE_2)
+            inc($i3)
+        end while
+
+    end if
+    end if
+
+end on
