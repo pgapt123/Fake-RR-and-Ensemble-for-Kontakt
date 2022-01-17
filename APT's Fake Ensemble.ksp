@@ -1,3 +1,9 @@
+{
+APT's Fake Ensemble Script for Kontakt
+Originally Released at https://github.com/pgapt123/Fake-RR-and-Ensemble-for-Kontakt
+v1.0.1 2022.1.17
+}
+
 on init
     set_ui_height_px(85)
     set_script_title("APT's Fake Ensemble")
@@ -111,13 +117,13 @@ on midi_in
 
     ignore_midi 
 
-    if ($MIDI_COMMAND=$MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s=1 or $button_midilearn_e=1))    {MIDI LEARN}
+    if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s = 1 or $button_midilearn_e = 1))    {MIDI LEARN}
         ignore_midi
-        if($button_midilearn_s=1)
+        if($button_midilearn_s = 1)
             $button_midilearn_s := 0
             $start_note := $MIDI_BYTE_1
         end if
-        if($button_midilearn_e=1)
+        if($button_midilearn_e = 1)
             $button_midilearn_e := 0
             $end_note := $MIDI_BYTE_1
         end if
