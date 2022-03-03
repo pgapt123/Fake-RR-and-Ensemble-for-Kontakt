@@ -1,7 +1,7 @@
 {
 APT's Borrowing RR Script for Kontakt
 Originally Released at https://github.com/pgapt123/Fake-RR-and-Ensemble-for-Kontakt
-v1.0.1 2022.1.17
+v1.1.0 2022.3.3
 }
 
 on init
@@ -65,6 +65,40 @@ on init
     read_persistent_var($button_random)
     read_persistent_var($rr_num)
 
+
+    declare ui_button $rr_reset
+    set_control_par(get_ui_id($rr_reset),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($rr_reset),$CONTROL_PAR_POS_X,350)
+    set_control_par(get_ui_id($rr_reset),$CONTROL_PAR_POS_Y,0)
+    set_text($rr_reset,"RR Reset")
+    $rr_reset := 0
+
+    declare ui_button $rr_reset_ks_on
+    set_control_par(get_ui_id($rr_reset_ks_on),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($rr_reset_ks_on),$CONTROL_PAR_POS_X,350)
+    set_control_par(get_ui_id($rr_reset_ks_on),$CONTROL_PAR_POS_Y,20)
+    set_text($rr_reset_ks_on,"Use KS to Reset RR")
+    $rr_reset_ks_on := 0
+
+    declare ui_value_edit $rr_reset_ks(0, 127, $VALUE_EDIT_MODE_NOTE_NAMES) 
+    set_control_par(get_ui_id($rr_reset_ks), $CONTROL_PAR_WIDTH, 40)
+    set_control_par(get_ui_id($rr_reset_ks),$CONTROL_PAR_POS_X,460)
+    set_control_par(get_ui_id($rr_reset_ks),$CONTROL_PAR_POS_Y,20)
+    set_text($rr_reset_ks, "")
+    $rr_reset_ks := 0
+
+    declare ui_button $button_midilearn_ks
+    set_control_par(get_ui_id($button_midilearn_ks),$CONTROL_PAR_WIDTH,100)
+    set_control_par(get_ui_id($button_midilearn_ks),$CONTROL_PAR_POS_X,510)
+    set_control_par(get_ui_id($button_midilearn_ks),$CONTROL_PAR_POS_Y,20)
+    set_text($button_midilearn_ks,"MIDI Learn")
+
+    make_persistent($rr_reset_ks_on)
+    make_persistent($rr_reset_ks)
+    read_persistent_var($rr_reset_ks_on)
+    read_persistent_var($rr_reset_ks)
+
+
     declare $borrow
     declare $midich
     declare $rr := 1
@@ -74,11 +108,16 @@ on init
     declare %keych[128]
 end on
 
+on ui_control($rr_reset)
+    $rr := 1
+    $rr_reset := 0
+end on
+
 on midi_in
     
     ignore_midi 
 
-    if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s = 1 or $button_midilearn_e = 1))
+    if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2 # 0 and ($button_midilearn_s = 1 or $button_midilearn_e = 1 or $button_midilearn_ks = 1))
         ignore_midi
         if($button_midilearn_s = 1)
             $button_midilearn_s := 0
@@ -88,8 +127,20 @@ on midi_in
             $button_midilearn_e := 0
             $end_note := $MIDI_BYTE_1
         end if
+        if($button_midilearn_ks = 1)
+            $button_midilearn_ks := 0
+            $rr_reset_ks := $MIDI_BYTE_1
+        end if
         exit
     end if
+
+    if ($rr_reset_ks_on = 1 and $MIDI_BYTE_1 = $rr_reset_ks)
+        if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2 # 0)
+            $rr := 1
+        end if 
+        exit 
+    end if 
+
 
     if (($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON) and ($MIDI_BYTE_2{vel} # 0) and ($MIDI_BYTE_1 >= $start_note) and ($MIDI_BYTE_1 <= $end_note))     {Note, send to cur RR channel}
         select($rr)
