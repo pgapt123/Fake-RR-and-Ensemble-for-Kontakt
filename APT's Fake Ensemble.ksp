@@ -1,7 +1,7 @@
 {
 APT's Fake Ensemble Script for Kontakt
 Originally Released at https://github.com/pgapt123/Fake-RR-and-Ensemble-for-Kontakt
-v1.0.1 2022.1.17
+v1.1.0 2022.4.26
 }
 
 on init
@@ -92,6 +92,16 @@ on init
     read_persistent_var($vel_ran)
     read_persistent_var($button_rel_stg)
 
+    declare ui_value_edit $start_ch(1, 16, 1) 
+    set_control_par(get_ui_id($start_ch), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($start_ch),$CONTROL_PAR_POS_X,450)
+    set_control_par(get_ui_id($start_ch),$CONTROL_PAR_POS_Y,60)
+    set_text($start_ch, "Starting Channel")
+    $start_ch := 1
+
+    make_persistent($start_ch)
+    read_persistent_var($start_ch)
+
 
     declare $time_ran_range
     declare $time_ran_range2
@@ -115,20 +125,24 @@ end on
 
 on midi_in
 
-    ignore_midi 
-
-    if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s = 1 or $button_midilearn_e = 1))    {MIDI LEARN}
+    if ($MIDI_COMMAND=$MIDI_COMMAND_NOTE_ON and ($MIDI_BYTE_2 # 0) and ($button_midilearn_s=1 or $button_midilearn_e=1))    {MIDI LEARN}
         ignore_midi
-        if($button_midilearn_s = 1)
+        if($button_midilearn_s=1)
             $button_midilearn_s := 0
             $start_note := $MIDI_BYTE_1
         end if
-        if($button_midilearn_e = 1)
+        if($button_midilearn_e=1)
             $button_midilearn_e := 0
             $end_note := $MIDI_BYTE_1
         end if
         exit
     end if
+
+    if ($MIDI_CHANNEL # $start_ch - 1)
+        exit
+    end if
+
+    ignore_midi 
 
     if (($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON) and ($MIDI_BYTE_2{vel} # 0) and ($MIDI_BYTE_1 >= $start_note) and ($MIDI_BYTE_1 <= $end_note))     {Note, send to cur RR channel}
         $i := 1
@@ -166,7 +180,7 @@ on midi_in
                 if($vel >127)
                     $vel := 127
                 end if
-                set_midi($midich-1, $MIDI_COMMAND, $borrow, $vel)
+                set_midi($start_ch-1 + $midich-1, $MIDI_COMMAND, $borrow, $vel)
                 $time_ran_range := $time_fac * $time_ran / 100
                 wait($time_fac + random(-$time_ran_range, $time_ran_range))
             end if
@@ -204,7 +218,7 @@ on midi_in
             end select
             
             if($borrow2 >= $start_note and $borrow2 <= $end_note)
-                set_midi($midich2-1, $MIDI_COMMAND, $borrow2, $MIDI_BYTE_2)
+                set_midi($start_ch-1 + $midich2-1, $MIDI_COMMAND, $borrow2, $MIDI_BYTE_2)
                 if($button_rel_stg = 1)
                     $time_ran_range2 := $time_fac * $time_ran / 100
                     wait($time_fac + random(-$time_ran_range2, $time_ran_range2))
@@ -218,7 +232,7 @@ on midi_in
     else        {others, send to all channels}
         $i3 := 1
         while ($i3 <= $ens_num)
-            set_midi($i3-1, $MIDI_COMMAND, $MIDI_BYTE_1, $MIDI_BYTE_2)
+            set_midi($start_ch-1 + $i3-1, $MIDI_COMMAND, $MIDI_BYTE_1, $MIDI_BYTE_2)
             inc($i3)
         end while
 
