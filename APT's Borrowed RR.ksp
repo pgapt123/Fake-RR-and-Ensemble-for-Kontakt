@@ -1,7 +1,7 @@
 {
 APT's Borrowing RR Script for Kontakt
 Originally Released at https://github.com/pgapt123/Fake-RR-and-Ensemble-for-Kontakt
-v1.2.0 2022.4.26
+v1.2.1 2022.4.28
 }
 
 on init
@@ -149,8 +149,8 @@ on midi_in
 
     ignore_midi 
 
-    if ($rr_reset_ks_on = 1 and $MIDI_BYTE_1 = $rr_reset_ks)
-        if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2 # 0)
+    if ($rr_reset_ks_on = 1 and $MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_1 = $rr_reset_ks)
+        if ($MIDI_BYTE_2 # 0)
             $rr := 1
         end if 
         exit 
