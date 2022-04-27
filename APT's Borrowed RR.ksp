@@ -1,7 +1,7 @@
 {
 APT's Borrowing RR Script for Kontakt
 Originally Released at https://github.com/pgapt123/Fake-RR-and-Ensemble-for-Kontakt
-v1.1.0 2022.3.3
+v1.2.0 2022.4.26
 }
 
 on init
@@ -99,6 +99,17 @@ on init
     read_persistent_var($rr_reset_ks)
 
 
+    declare ui_value_edit $start_ch(1, 16, 1) 
+    set_control_par(get_ui_id($start_ch), $CONTROL_PAR_WIDTH, 150)
+    set_control_par(get_ui_id($start_ch),$CONTROL_PAR_POS_X,350)
+    set_control_par(get_ui_id($start_ch),$CONTROL_PAR_POS_Y,60)
+    set_text($start_ch, "Starting Channel")
+    $start_ch := 1
+
+    make_persistent($start_ch)
+    read_persistent_var($start_ch)
+
+
     declare $borrow
     declare $midich
     declare $rr := 1
@@ -114,8 +125,6 @@ on ui_control($rr_reset)
 end on
 
 on midi_in
-    
-    ignore_midi 
 
     if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2 # 0 and ($button_midilearn_s = 1 or $button_midilearn_e = 1 or $button_midilearn_ks = 1))
         ignore_midi
@@ -133,6 +142,12 @@ on midi_in
         end if
         exit
     end if
+
+    if ($MIDI_CHANNEL # $start_ch - 1)
+        exit
+    end if
+
+    ignore_midi 
 
     if ($rr_reset_ks_on = 1 and $MIDI_BYTE_1 = $rr_reset_ks)
         if ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2 # 0)
@@ -175,7 +190,7 @@ on midi_in
         %keych[$MIDI_BYTE_1] := $midich
         %truekey[$MIDI_BYTE_1] := $borrow
 
-        set_midi($midich-1, $MIDI_COMMAND, $borrow, $MIDI_BYTE_2)
+        set_midi($start_ch-1 + $midich-1, $MIDI_COMMAND, $borrow, $MIDI_BYTE_2)
 
         if($button_random = 1)
             $rr := $rr + random(1, $rr_num-1)
@@ -188,12 +203,12 @@ on midi_in
         end if
 
     else if ( ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_OFF or ($MIDI_COMMAND = $MIDI_COMMAND_NOTE_ON and $MIDI_BYTE_2{vel} = 0)) and ($MIDI_BYTE_1 >= $start_note) and ($MIDI_BYTE_1 <= $end_note)  )
-        set_midi(%keych[$MIDI_BYTE_1]-1, $MIDI_COMMAND, %truekey[$MIDI_BYTE_1], $MIDI_BYTE_2)
+        set_midi($start_ch-1 + %keych[$MIDI_BYTE_1]-1, $MIDI_COMMAND, %truekey[$MIDI_BYTE_1], $MIDI_BYTE_2)
 
     else        {others, send to all channels}
         $i := 1
         while ($i <= $rr_num)
-            set_midi($i-1, $MIDI_COMMAND, $MIDI_BYTE_1, $MIDI_BYTE_2)
+            set_midi($start_ch-1 + $i-1, $MIDI_COMMAND, $MIDI_BYTE_1, $MIDI_BYTE_2)
             inc($i)
         end while
 
